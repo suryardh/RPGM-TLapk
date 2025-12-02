@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:archive/archive_io.dart';
 import 'api_manager.dart';
@@ -16,33 +17,49 @@ class TranslatorService {
     Directory gameDir = Directory(folderPath);
     Directory tempDir = await getTemporaryDirectory();
     Directory outputDir = Directory('${tempDir.path}/translated_data');
+    
     if (outputDir.existsSync()) outputDir.deleteSync(recursive: true);
     outputDir.createSync();
 
-    List<File> files = gameDir.listSync().whereType<File>().where((f) => f.path.endsWith('.json')).toList();
+    List<File> files = [];
+    try {
+      files = gameDir.listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.json'))
+          .toList();
+    } catch (e) {
+      yield {"status": "error", "log": "Read folder failed: $e"};
+      return;
+    }
     
     if (!scope['Story']!) files.removeWhere((f) => f.path.contains('Map') || f.path.contains('CommonEvents'));
     if (!scope['Items']!) files.removeWhere((f) => f.path.contains('Items') || f.path.contains('Skills') || f.path.contains('Weapons'));
     if (!scope['System']!) files.removeWhere((f) => f.path.contains('System') || f.path.contains('States'));
 
     int total = files.length;
+    if (total == 0) {
+      yield {"status": "error", "log": "No target JSON files found"};
+      return;
+    }
+
     String gameTitle = "Unknown"; 
 
     for (int i = 0; i < total; i++) {
       File file = files[i];
       String fileName = file.uri.pathSegments.last;
       
-      yield {"status": "processing", "log": fileName, "progress": i / total};
+      yield {"status": "processing", "log": "Processing $fileName", "progress": i / total};
       
       try {
         String content = await file.readAsString();
+        
         if (fileName == 'System.json' && content.contains('gameTitle')) {
-           // Simple regex extract title
            final match = RegExp(r'"gameTitle"\s*:\s*"([^"]+)"').firstMatch(content);
            if (match != null) gameTitle = match.group(1) ?? "Game";
         }
 
         var extracted = await processor.prepareFile(content);
+        
         List<String> finalTexts = [];
         List<String> batchToSend = [];
         List<int> batchIndices = [];
@@ -53,7 +70,7 @@ class TranslatorService {
           if (cached != null) {
             finalTexts.add(cached);
           } else {
-            finalTexts.add("");
+            finalTexts.add(""); 
             batchToSend.add(src);
             batchIndices.add(j);
           }
@@ -73,36 +90,62 @@ class TranslatorService {
                  dbHelper.saveCache(chunk[r], results[r], "JP-ID");
                }
              } catch (e) {
-               print("API Error: $e");
+               yield {"status": "warning", "log": "API Error batch $k: $e"};
              }
           }
         }
 
-        String finalJson = await processor.rebuildFile(extracted.jsonStructure, finalTexts, extracted.placeholders);
+        for(int m=0; m<finalTexts.length; m++) {
+          if (finalTexts[m].isEmpty && m < extracted.textsToTranslate.length) {
+             finalTexts[m] = extracted.textsToTranslate[m]; 
+          }
+        }
+
+        String finalJson = await processor.rebuildFile(
+          extracted.jsonStructure, finalTexts, extracted.placeholders
+        );
+
         File('${outputDir.path}/$fileName').writeAsStringSync(finalJson);
+
       } catch (e) {
-        print("Skip file $fileName: $e");
+        try {
+          file.copySync('${outputDir.path}/$fileName');
+          yield {"status": "warning", "log": "[FALLBACK] Copying original $fileName"};
+        } catch (copyErr) {
+          yield {"status": "error", "log": "Copy failed: $copyErr"};
+        }
       }
     }
 
-    // ZIPPING
-    yield {"status": "zipping", "log": "Compressing...", "progress": 1.0};
-    
-    var encoder = ZipFileEncoder();
-    String zipName = "JP-ID Batch $gameTitle.zip";
-    // Simpan di Downloads (Path public aman di Android)
-    Directory? downloadDir = Directory('/storage/emulated/0/Download');
-    if (!downloadDir.existsSync()) downloadDir = gameDir; // Fallback
-
-    String zipPath = "${downloadDir.path}/$zipName";
+    yield {"status": "zipping", "log": "Compressing to ZIP...", "progress": 1.0};
     
     try {
+      List<FileSystemEntity> resultFiles = outputDir.listSync();
+      if (resultFiles.isEmpty) throw Exception("Output directory empty");
+
+      var encoder = ZipFileEncoder();
+      Directory? downloadDir = Directory('/storage/emulated/0/Download');
+      if (!downloadDir.existsSync()) downloadDir = gameDir; 
+      
+      String cleanTitle = gameTitle.replaceAll(RegExp(r'[^\w\s]+'), '');
+      String zipPath = "${downloadDir.path}/Patch_${cleanTitle}.zip";
+      
       encoder.create(zipPath);
-      encoder.addDirectory(outputDir);
+
+      for (var entity in resultFiles) {
+        if (entity is File) {
+          String name = entity.uri.pathSegments.last;
+          encoder.addFile(entity, name); 
+        }
+      }
+      
       encoder.close();
-      yield {"status": "completed", "log": "Saved to Downloads", "path": zipPath};
+      outputDir.deleteSync(recursive: true);
+
+      yield {"status": "completed", "log": "Saved to: $zipPath", "path": zipPath};
+      
     } catch (e) {
-      yield {"status": "error", "log": "Zip Error: $e"};
+      yield {"status": "error", "log": "ZIP Failed: $e"};
     }
   }
 }
