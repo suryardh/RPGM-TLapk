@@ -1,5 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.rpgm_translator">
-    
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.rpgm_translator">
+
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
@@ -11,7 +12,7 @@
 
     <application
         android:label="RPGM Translator"
-        android:name="${applicationName}"
+        android:name="${applicationName}" 
         android:icon="@mipmap/ic_launcher">
         
         <activity
@@ -22,22 +23,24 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
+            
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
         
-        <service 
-            android:name="id.flutter.flutter_background_service.BackgroundService" 
-            android:foregroundServiceType="dataSync" />
-            
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+            
+        <service 
+            android:name="id.flutter.flutter_background_service.BackgroundService" 
+            android:foregroundServiceType="dataSync" />
     </application>
 </manifest>
