@@ -27,7 +27,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-   fonts:
-     - family: Fira Code
-       fonts:
-         - asset: assets/fonts/FiraCode-Regular.ttf
+  fonts:
+    - family: Fira Code
+      fonts:
+        - asset: assets/fonts/FiraCode-Regular.ttf
