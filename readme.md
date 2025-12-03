@@ -128,7 +128,12 @@ Input Data:
 
 This renders automatically on GitHub.
 
-```flowchart TD
+```---
+    config:
+        look: neo
+        theme: mc
+    ---
+flowchart TD
     A[User Selects Game Folder] --> B[Scan JSON Files]
     B --> C[Load Offline Cache]
 
