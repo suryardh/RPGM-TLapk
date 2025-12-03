@@ -129,26 +129,25 @@ Input Data:
 This renders automatically on GitHub.
 
 ```flowchart TD
+    A[User Selects Game Folder] --> B[Scan JSON Files]
+    B --> C[Load Offline Cache]
 
-A[User Selects Game Folder] --> B[Scan JSON Files]
-B --> C[Load Offline Cache]
+    C -->|Cache Hit| D[Return Cached Result]
+    C -->|Cache Miss| E["Prepare Batch (50–100 lines)"]
 
-C -->|Cache Hit| D[Return Cached Result]
-C -->|Cache Miss| E["Prepare Batch (50–100 lines)"]
+    E --> F[Send to Gemini API]
 
-E --> F[Send to Gemini API]
+    F -->|Success| G[Store Translation in Cache]
+    F -->|429 Rate Limit| H[Rotate API Key] --> F
+    F -->|Error/Failure| I[Fallback: Copy Original File]
 
-F -->|Success| G[Store Translation in Cache]
-F -->|429 Rate Limit| H[Rotate API Key] --> F
-F -->|Error/Failure| I[Fallback: Copy Original File]
+    G --> J[Write Translated JSON File]
 
-G --> J[Write Translated JSON File]
+    J --> K[Compress into ZIP Patch]
 
-J --> K[Compress into ZIP Patch]
+    K --> L[Export Patch to Downloads]
 
-K --> L[Export Patch to Downloads]
-
-L --> M[User Applies Patch to Game]
+    L --> M[User Applies Patch to Game]
 ```
 
 ## Project Status
