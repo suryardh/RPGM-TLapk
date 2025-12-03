@@ -126,8 +126,6 @@ Input Data:
 
 ## Flowchart Diagram (Mermaid)
 
-This renders automatically on GitHub.
-
 ```flowchart TD   
     A[User Selects Game Folder] --> B[Scan JSON Files]
     B --> C[Load Offline Cache]
