@@ -128,27 +128,27 @@ Input Data:
 
 This renders automatically on GitHub.
 
-```mermaid
-flowchart TD
-    A[User Selects Game Folder] --> B[Scan JSON Files]
-    B --> C[Load Offline Cache]
+```flowchart TD
 
-    C -->|Cache Hit| D[Return Cached Result]
-    C -->|Cache Miss| E[Prepare Batch (50–100 lines)]
+A[User Selects Game Folder] --> B[Scan JSON Files]
+B --> C[Load Offline Cache]
 
-    E --> F[Send to Gemini API]
+C -->|Cache Hit| D[Return Cached Result]
+C -->|Cache Miss| E["Prepare Batch (50–100 lines)"]
 
-    F -->|Success| G[Store Translation in Cache]
-    F -->|429 Rate Limit| H[Rotate API Key] --> F
-    F -->|Error/Failure| I[Fallback: Copy Original File]
+E --> F[Send to Gemini API]
 
-    G --> J[Write Translated JSON File]
+F -->|Success| G[Store Translation in Cache]
+F -->|429 Rate Limit| H[Rotate API Key] --> F
+F -->|Error/Failure| I[Fallback: Copy Original File]
 
-    J --> K[Compress into ZIP Patch]
+G --> J[Write Translated JSON File]
 
-    K --> L[Export Patch to Downloads]
+J --> K[Compress into ZIP Patch]
 
-    L --> M[User Applies Patch to Game]
+K --> L[Export Patch to Downloads]
+
+L --> M[User Applies Patch to Game]
 ```
 
 ## Project Status
